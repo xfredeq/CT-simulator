@@ -34,6 +34,9 @@ if st.checkbox('use DICOM format'):
         st.write("DICOM file uploaded succesfully")
         dc = dcmread(file)
         image = dc.pixel_array
+        patient_info['id'] = dc.PatientID
+        patient_info['name'] = str(dc.PatientName)
+        st.write(patient_info)
 else:
     file = st.file_uploader("Choose file", type=['jpg', 'jpeg', 'png'])
     if file is not None:
