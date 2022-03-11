@@ -1,4 +1,6 @@
 import streamlit as st
+import numpy as np
+import functions as fun
 from PIL import Image
 from pydicom import dcmread
 
@@ -16,7 +18,7 @@ st.set_page_config(
 
 st.markdown("<h3 style='text-align: left; color: grey;'>Authors:</h3>", unsafe_allow_html=True)
 st.markdown("<h4 style='text-align: left; color: grey;'>Mateusz Frąckowiak 145264</h4>", unsafe_allow_html=True)
-st.markdown("<h4 style='text-align: left; color: grey;'>Kamil Niżnik 145XXX</h4>", unsafe_allow_html=True)
+st.markdown("<h4 style='text-align: left; color: grey;'>Kamil Niżnik 145238</h4>", unsafe_allow_html=True)
 
 title = st.title('Computer Tomograph Simulation')
 
@@ -42,5 +44,15 @@ else:
     if file is not None:
         image = Image.open(file)
 
+
 if image is not None:
     st.image(image, caption="Uploaded image")
+    image = np.array(image)
+    
+    croped_image = fun.crop_image(image)
+    st.image(croped_image, caption="Croped image")
+    st.info(croped_image.shape)
+
+    sinogram = fun.make_sinogram(croped_image)
+    st.image(sinogram, caption="Sinogram")
+    st.info(sinogram.shape)
