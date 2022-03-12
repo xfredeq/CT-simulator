@@ -46,13 +46,26 @@ else:
 
 
 if image is not None:
-    st.image(image, caption="Uploaded image")
     image = np.array(image)
     
-    croped_image = fun.crop_image(image)
-    st.image(croped_image, caption="Croped image")
-    st.info(croped_image.shape)
+    st.subheader(f'Uploaded Image ({image.shape[0]}x{image.shape[1]})')
+    st.image(image, caption="Uploaded image")
+    
+    cropped_image = fun.crop_image(image)
+    st.subheader(f'Cropped grayscale image ({cropped_image.shape[0]}x{cropped_image.shape[1]})')
+    st.image(cropped_image, caption="Cropped image")
 
-    sinogram = fun.make_sinogram(croped_image)
-    st.image(sinogram, caption="Sinogram")
-    st.info(sinogram.shape)
+    st.subheader("Sinogram")
+    alpha_step = st.slider('Delta alpha (step in degrees)', 0.1, 5.0, 4.0, 0.1)
+    phi = st.slider("divergence (in degrees)", 0, 360, 180, 10)
+    n = st.slider("number of detectors", 0, 400, 200, 10)
+    sinogram = fun.make_sinogram(cropped_image, alpha_step, phi, n)
+    st.image(sinogram, caption=f'Sinogram ({sinogram.shape[0]}x{sinogram.shape[1]})')
+
+    st.subheader("Filtered sinogram")
+    filtered = fun.filter_sinogram(sinogram)
+    st.image(fun._normalize(filtered), caption="Filtered sinogram")
+
+    st.subheader("Reconstructed image")
+    reconstructed = fun.reconstruct_image(filtered, alpha_step, phi, n, cropped_image.shape[0])
+    st.image(reconstructed, caption="Reconstructed image")
