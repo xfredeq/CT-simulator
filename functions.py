@@ -14,7 +14,6 @@ def normalize(array):
 
 
 def adjust_image(image):
-    print(image.shape)
     if len(image.shape) > 2:
         image = skimage.color.rgb2gray(image)
 
@@ -24,21 +23,14 @@ def adjust_image(image):
     y, x = image.shape
     if y < x:
         fill = np.zeros(((x-y)//2, x))
-        print("y<x")
-        print("image: ", image.shape)
-        print("fill: ", fill.shape)
         image = np.vstack((fill, image, fill))
     elif x < y:
-        print("x<y")
         fill = np.zeros((y, (y-x)//2))
-        print("image: ", image.shape)
-        print("fill: ", fill.shape)
         image = np.hstack((fill, image, fill))
 
     dimension = min(image.shape)
     image = image[0:dimension, 0:dimension]
 
-    print(image.shape)
     return image
 
 

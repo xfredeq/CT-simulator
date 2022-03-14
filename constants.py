@@ -9,3 +9,5 @@ AUTHORS = """
 """
 
 SIDEBAR_TEXT = "Lorem ipsum"
+
+GEN_OPTIONS = ("Clear", "Generate final result", "Show intermediate steps")
