@@ -1,8 +1,10 @@
 import math
 
-import numpy as np
 import skimage.color
 import skimage.draw
+
+import numpy as np
+import streamlit as st
 
 
 def _convert_coords(coords, r):
@@ -34,6 +36,7 @@ def adjust_image(image):
     return image
 
 
+@st.experimental_memo
 def make_sinogram(image, alpha_step=4, phi=180, n=200):
     alpha_step = np.deg2rad(alpha_step)
     phi = np.deg2rad(phi)
@@ -96,14 +99,15 @@ def filter_sinogram(sinogram):
     return sinogram
 
 
-def reconstruct_image(sinogram, alpha_step, phi, n, img_size):
+@st.experimental_memo
+def reconstruct_image(sinogram, alpha_step, phi, n, img_size, iterations=0):
     alpha_step = np.deg2rad(alpha_step)
     phi = np.deg2rad(phi)
 
     image = np.zeros((img_size, img_size))
     r = 0.5 * img_size
 
-    iterations = math.ceil(2 * np.pi / alpha_step)
+    iterations = math.ceil(2 * np.pi / alpha_step) if iterations == 0 else iterations
 
     alpha = 0
     for iteration in range(iterations):

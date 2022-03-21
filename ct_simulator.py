@@ -17,13 +17,17 @@ st.set_page_config(
         }
 )
 
-session = st.session_state
-if 'run_id' not in session:
-    session['run_id'] = 0
+
+def set_default():
+    st.session_state.alpha = 2.0
+    st.session_state.phi = 180
+    st.session_state.n = 200
+
+    st.session_state.radio = "Clear"
 
 
-def on_param_change():
-    session.run_id += 1
+def reset_radio():
+    st.session_state.radio = "Clear"
 
 
 st.markdown(const.AUTHORS, unsafe_allow_html=True)
@@ -65,17 +69,32 @@ if image is not None:
 
     st.subheader("Define tomograph parameters")
 
-    alpha_step = st.slider('Delta alpha (step in degrees)', 0.1, 5.0, 4.0, 0.1, on_change=on_param_change())
-    phi = st.slider("divergence (in degrees)", 0, 360, 180, 10)
-    n = st.slider("number of detectors", 0, 400, 200, 10)
+    alpha_step = st.slider('Delta alpha (step in degrees)', 0.1, 5.0, 2.0, 0.1, key='alpha', on_change=reset_radio)
+    phi = st.slider("divergence (in degrees)", 0, 360, 180, 10, key='phi', on_change=reset_radio)
+    n = st.slider("number of detectors", 0, 400, 200, 10, key='n', on_change=reset_radio)
+    default_button = st.button(label='Set default', on_click=set_default)
 
     st.subheader("Result generation options")
-    option = st.radio("", const.GEN_OPTIONS, key=session.run_id)
+    option = st.radio("", const.GEN_OPTIONS, key='radio')
 
     if option == "Clear":
-        pass
+        st.write("Cleared")
     elif option == "Show intermediate steps":
-        pass
+        st.write("steps")
+        sinogram = fun.make_sinogram(cropped_image, alpha_step, phi, n)
+
+        st.subheader("Set number of iterations")
+        iterations = st.slider("", 1, int(np.floor(360/alpha_step)), step=5)
+
+        st.subheader("Sinogram")
+        st.image(sinogram[0:iterations], caption=f'Sinogram ({iterations}x{sinogram.shape[1]})')
+
+        filtered = fun.filter_sinogram(sinogram)
+
+        st.subheader("Reconstructed image")
+        reconstructed = fun.reconstruct_image(filtered, alpha_step, phi, n, cropped_image.shape[0], iterations)
+        st.image(reconstructed, caption="Reconstructed image")
+
     else:
         st.subheader("Sinogram")
         sinogram = fun.make_sinogram(cropped_image, alpha_step, phi, n)
@@ -88,6 +107,3 @@ if image is not None:
         st.subheader("Reconstructed image")
         reconstructed = fun.reconstruct_image(filtered, alpha_step, phi, n, cropped_image.shape[0])
         st.image(reconstructed, caption="Reconstructed image")
-
-
-
