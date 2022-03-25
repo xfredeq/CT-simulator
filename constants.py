@@ -6,8 +6,9 @@ AUTHORS = """
     <h3 style='text-align: left; color: grey;'>Authors:</h3>
     <h4 style='text-align: left; color: grey;'>Mateusz Frąckowiak 145264</h4>
     <h4 style='text-align: left; color: grey;'>Kamil Niżnik 145238</h4>
+    <hr>
 """
 
-SIDEBAR_TEXT = "Lorem ipsum"
+SIDEBAR_TEXT = "Options"
 
 GEN_OPTIONS = ("Clear", "Generate final result", "Show intermediate steps")

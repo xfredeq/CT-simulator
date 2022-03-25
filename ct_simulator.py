@@ -30,11 +30,14 @@ def reset_radio():
     st.session_state.radio = "Clear"
 
 
-st.markdown(const.AUTHORS, unsafe_allow_html=True)
-
 title = st.title(const.TITLE)
 
+st.sidebar.markdown(const.AUTHORS, unsafe_allow_html=True)
 st.sidebar.write(const.SIDEBAR_TEXT)
+
+filter_checkbox = st.sidebar.checkbox('Filter Sinogram', value=True)
+
+dicom_save_checkbox = st.sidebar.checkbox("Save in Dicom Format")
 
 st.subheader("File upload")
 
@@ -51,6 +54,10 @@ if dicom_checkbox:
         image = dc.pixel_array
         patient_info['id'] = dc.PatientID
         patient_info['name'] = str(dc.PatientName)
+        patient_info['date'] = dc.timestamp
+        patient_info['comments'] = str(dc.ImageComments)
+        st.write(dc.__dict__)
+
         st.write(patient_info)
 else:
     file = st.file_uploader("Choose file", type=['jpg', 'jpeg', 'png'])
@@ -79,31 +86,61 @@ if image is not None:
 
     if option == "Clear":
         st.write("Cleared")
-    elif option == "Show intermediate steps":
-        st.write("steps")
-        sinogram = fun.make_sinogram(cropped_image, alpha_step, phi, n)
-
-        st.subheader("Set number of iterations")
-        iterations = st.slider("", 1, int(np.floor(360/alpha_step)), step=5)
-
-        st.subheader("Sinogram")
-        st.image(sinogram[0:iterations], caption=f'Sinogram ({iterations}x{sinogram.shape[1]})')
-
-        filtered = fun.filter_sinogram(sinogram)
-
-        st.subheader("Reconstructed image")
-        reconstructed = fun.reconstruct_image(filtered, alpha_step, phi, n, cropped_image.shape[0], iterations)
-        st.image(reconstructed, caption="Reconstructed image")
-
     else:
-        st.subheader("Sinogram")
-        sinogram = fun.make_sinogram(cropped_image, alpha_step, phi, n)
-        st.image(sinogram, caption=f'Sinogram ({sinogram.shape[0]}x{sinogram.shape[1]})')
+        if option == "Show intermediate steps":
 
-        st.subheader("Filtered sinogram")
-        filtered = fun.filter_sinogram(sinogram)
-        st.image(fun.normalize(filtered), caption="Filtered sinogram")
+            sinogram = fun.make_sinogram(cropped_image, alpha_step, phi, n)
 
-        st.subheader("Reconstructed image")
-        reconstructed = fun.reconstruct_image(filtered, alpha_step, phi, n, cropped_image.shape[0])
-        st.image(reconstructed, caption="Reconstructed image")
+            st.subheader("Sinogram generation steps")
+            sinogram_step = st.slider("", 1, int(np.floor(360 / alpha_step)), step=5)
+
+            st.subheader("Sinogram")
+            st.image(sinogram[0:sinogram_step], caption=f'Sinogram ({sinogram_step}x{sinogram.shape[1]})')
+
+            st.subheader("Tomograph rotation degree")
+            iterations = st.slider("", 1, 360, step=5)
+
+            if filter_checkbox:
+                filtered = fun.filter_sinogram(sinogram)
+                st.subheader("Reconstructed image")
+                reconstructed = fun.reconstruct_image(filtered, alpha_step, phi, n, cropped_image.shape[0], iterations)
+                st.image(reconstructed, caption="Reconstructed image")
+            else:
+                st.subheader("Reconstructed image")
+                reconstructed = fun.reconstruct_image(sinogram, alpha_step, phi, n, cropped_image.shape[0], iterations)
+                st.image(reconstructed, caption="Reconstructed image")
+        else:
+            st.subheader("Sinogram")
+            sinogram = fun.make_sinogram(cropped_image, alpha_step, phi, n)
+            st.image(sinogram, caption=f'Sinogram ({sinogram.shape[0]}x{sinogram.shape[1]})')
+
+            if filter_checkbox:
+                st.subheader("Filtered sinogram")
+                filtered = fun.filter_sinogram(sinogram)
+                st.image(fun.normalize(filtered), caption="Filtered sinogram")
+
+                st.subheader("Reconstructed image")
+                reconstructed = fun.reconstruct_image(filtered, alpha_step, phi, n, cropped_image.shape[0])
+                st.image(reconstructed, caption="Reconstructed image")
+            else:
+                st.subheader("Reconstructed image")
+                reconstructed = fun.reconstruct_image(sinogram, alpha_step, phi, n, cropped_image.shape[0])
+                st.image(reconstructed, caption="Reconstructed image")
+
+        if option != 'Clear':
+            st.subheader('Save file')
+
+            if dicom_save_checkbox:
+                "save in dicom format"
+            else:
+                "normal save"
+
+            file_name = st.text_input("File name", value=file.name)
+            save_img = Image.fromarray(np.uint8(reconstructed * 255), 'L')
+            #save_img = save_img.convert('1')
+            save_img.save(file_name)
+            #st.download_button("Download file", data=save_img, file_name=file_name)
+            #TODO make file atemporary and lett it to be downloaded, add dicom input features, adjust filename
+
+else:
+    st.warning("File has not been uploaded")
