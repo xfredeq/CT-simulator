@@ -1,11 +1,12 @@
-import streamlit as st
-import numpy as np
+from io import BytesIO
 
+import numpy as np
+import streamlit as st
 from PIL import Image
 from pydicom import dcmread
 
-import functions as fun
 import constants as const
+import functions as fun
 
 st.set_page_config(
         page_title="CT Simulator",
@@ -35,7 +36,7 @@ title = st.title(const.TITLE)
 st.sidebar.markdown(const.AUTHORS, unsafe_allow_html=True)
 st.sidebar.write(const.SIDEBAR_TEXT)
 
-filter_checkbox = st.sidebar.checkbox('Filter Sinogram', value=True)
+filter_checkbox = st.sidebar.checkbox('Filter Sinogram', value=True, on_change=reset_radio)
 
 dicom_save_checkbox = st.sidebar.checkbox("Save in Dicom Format")
 
@@ -66,13 +67,16 @@ else:
 
 if image is not None:
     image = np.array(image)
-
-    st.subheader(f'Uploaded Image ({image.shape[0]}x{image.shape[1]})')
-    st.image(image, caption="Uploaded image")
-
     cropped_image = fun.adjust_image(image)
-    st.subheader(f'Adjusted grayscaled image ({cropped_image.shape[0]}x{cropped_image.shape[1]})')
-    st.image(cropped_image, caption="Adjusted image")
+
+    input1, input2 = st.columns(2)
+    with input1:
+        st.subheader(f'Uploaded Image ({image.shape[0]}x{image.shape[1]})')
+        st.image(image, caption="Uploaded image")
+
+    with input2:
+        st.subheader(f'Adjusted grayscaled image ({cropped_image.shape[0]}x{cropped_image.shape[1]})')
+        st.image(cropped_image, caption="Adjusted image")
 
     st.subheader("Define tomograph parameters")
 
@@ -110,37 +114,48 @@ if image is not None:
                 reconstructed = fun.reconstruct_image(sinogram, alpha_step, phi, n, cropped_image.shape[0], iterations)
                 st.image(reconstructed, caption="Reconstructed image")
         else:
-            st.subheader("Sinogram")
-            sinogram = fun.make_sinogram(cropped_image, alpha_step, phi, n)
-            st.image(sinogram, caption=f'Sinogram ({sinogram.shape[0]}x{sinogram.shape[1]})')
+            if filter_checkbox:
+                sin1, sin2, rec = st.columns(3)
+            else:
+                sin1, rec = st.columns(2)
+
+            with sin1:
+                st.subheader("Sinogram")
+                sinogram = fun.make_sinogram(cropped_image, alpha_step, phi, n)
+                st.image(sinogram, caption=f'Sinogram ({sinogram.shape[0]}x{sinogram.shape[1]})')
 
             if filter_checkbox:
-                st.subheader("Filtered sinogram")
-                filtered = fun.filter_sinogram(sinogram)
-                st.image(fun.normalize(filtered), caption="Filtered sinogram")
+                with sin2:
+                    st.subheader("Filtered sinogram")
+                    filtered = fun.filter_sinogram(sinogram)
+                    st.image(fun.normalize(filtered), caption="Filtered sinogram")
 
-                st.subheader("Reconstructed image")
                 reconstructed = fun.reconstruct_image(filtered, alpha_step, phi, n, cropped_image.shape[0])
-                st.image(reconstructed, caption="Reconstructed image")
             else:
-                st.subheader("Reconstructed image")
                 reconstructed = fun.reconstruct_image(sinogram, alpha_step, phi, n, cropped_image.shape[0])
+
+            with rec:
+                st.subheader("Reconstructed image")
                 st.image(reconstructed, caption="Reconstructed image")
 
-        if option != 'Clear':
-            st.subheader('Save file')
+        st.subheader('Save file')
 
-            if dicom_save_checkbox:
-                "save in dicom format"
-            else:
-                "normal save"
+        if dicom_save_checkbox:
+            "save in dicom format"
+        else:
+            "normal save"
 
-            file_name = st.text_input("File name", value=file.name)
-            save_img = Image.fromarray(np.uint8(reconstructed * 255), 'L')
-            #save_img = save_img.convert('1')
-            save_img.save(file_name)
-            #st.download_button("Download file", data=save_img, file_name=file_name)
-            #TODO make file atemporary and lett it to be downloaded, add dicom input features, adjust filename
+        with st.form("File Name"):
+            file_name = st.text_input("File name", value=file.name, placeholder="file_name.jpg")
+            confirm_filename = st.form_submit_button("Confirm")
+
+        image_data = BytesIO()
+        save_img = Image.fromarray(np.uint8(reconstructed * 255), 'L')
+        save_img.save(image_data, format="JPEG")
+
+        file_name = fun.adjust_filename(file_name)
+
+        st.download_button("Download reconstructed image", data=image_data, file_name=file_name)
 
 else:
     st.warning("File has not been uploaded")

@@ -1,4 +1,5 @@
 import math
+import re
 
 import numpy as np
 import pydicom._storage_sopclass_uids
@@ -142,6 +143,13 @@ def reconstruct_image(sinogram, alpha_step, phi, n, img_size, iterations=0):
     #image[:][image[:] > 0.8] = 1
 
     return image
+
+
+def adjust_filename(file_name):
+    file_name = re.sub(r'\s+', '', file_name)
+    file_name = file_name.split('.')[0]
+    file_name += '.jpg'
+    return file_name
 
 
 def convert_image_to_ubyte(img):
