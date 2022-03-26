@@ -1,3 +1,4 @@
+from datetime import datetime
 from io import BytesIO
 
 import numpy as np
@@ -50,15 +51,12 @@ dicom_checkbox = st.checkbox('use DICOM format')
 if dicom_checkbox:
     file = st.file_uploader("Choose file", type=['dcm'])
     if file is not None:
-        st.write("DICOM file uploaded succesfully")
+        st.info("DICOM file uploaded succesfully")
         dc = dcmread(file)
         image = dc.pixel_array
-        patient_info['id'] = dc.PatientID
-        patient_info['name'] = str(dc.PatientName)
-        patient_info['date'] = dc.timestamp
-        patient_info['comments'] = str(dc.ImageComments)
-        st.write(dc.__dict__)
 
+        patient_info = fun.get_patient_info(dc)
+        st.write(dc.__dict__)
         st.write(patient_info)
 else:
     file = st.file_uploader("Choose file", type=['jpg', 'jpeg', 'png'])
@@ -140,22 +138,37 @@ if image is not None:
 
         st.subheader('Save file')
 
-        if dicom_save_checkbox:
-            "save in dicom format"
-        else:
-            "normal save"
-
         with st.form("File Name"):
             file_name = st.text_input("File name", value=file.name, placeholder="file_name.jpg")
+            if dicom_save_checkbox:
+                st.write("Dicom metadata:")
+
+                form_col1, form_col2 = st.columns(2)
+                with form_col1:
+                    patient_info['id'] = str(st.number_input("PatientID", min_value=0, value=int(patient_info['id'])))
+                    date = st.date_input("Date", value=datetime.now())
+                with form_col2:
+                    patient_info['name'] = st.text_input("PatientName", value=patient_info['name'])
+                    time = st.time_input("Time", value=datetime.now())
+
+                patient_info['comments'] = st.text_input("ImageComments", value=patient_info['comments'])
+                patient_info['date'] = datetime.combine(date, time).timestamp()
+
             confirm_filename = st.form_submit_button("Confirm")
 
         image_data = BytesIO()
         save_img = Image.fromarray(np.uint8(reconstructed * 255), 'L')
         save_img.save(image_data, format="JPEG")
 
-        file_name = fun.adjust_filename(file_name)
+        file_name = fun.adjust_filename(file_name, dicom_save_checkbox)
 
-        st.download_button("Download reconstructed image", data=image_data, file_name=file_name)
+        if dicom_save_checkbox:
+            "save in dicom format"
+            dicom_file = fun.create_dicom(save_img, patient_info)
+            st.download_button("Download dicom file", data=dicom_file, file_name=file_name)
+        else:
+            st.download_button("Download reconstructed image", data=image_data, file_name=file_name)
+
 
 else:
     st.warning("File has not been uploaded")

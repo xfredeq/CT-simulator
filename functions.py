@@ -1,12 +1,14 @@
+from datetime import datetime
 import math
 import re
+from io import BytesIO
 
 import numpy as np
 import pydicom._storage_sopclass_uids
 import skimage.color
 import skimage.draw
 import streamlit as st
-
+from PIL.Image import Image
 from pydicom.dataset import Dataset, FileDataset
 from pydicom.uid import ExplicitVRLittleEndian
 from skimage.exposure import rescale_intensity
@@ -30,10 +32,10 @@ def adjust_image(image):
 
     y, x = image.shape
     if y < x:
-        fill = np.zeros(((x-y)//2, x))
+        fill = np.zeros(((x - y) // 2, x))
         image = np.vstack((fill, image, fill))
     elif x < y:
-        fill = np.zeros((y, (y-x)//2))
+        fill = np.zeros((y, (y - x) // 2))
         image = np.hstack((fill, image, fill))
 
     dimension = min(image.shape)
@@ -113,7 +115,8 @@ def reconstruct_image(sinogram, alpha_step, phi, n, img_size, iterations=0):
     image = np.zeros((img_size, img_size))
     r = 0.5 * img_size
 
-    iterations = math.ceil(2 * np.pi * iterations / (alpha_step * 360)) if iterations != 0 else math.ceil(2 * np.pi  / alpha_step)
+    iterations = math.ceil(2 * np.pi * iterations / (alpha_step * 360)) if iterations != 0 else math.ceil(
+        2 * np.pi / alpha_step)
 
     alpha = 0
     for iteration in range(iterations):
@@ -139,16 +142,38 @@ def reconstruct_image(sinogram, alpha_step, phi, n, img_size, iterations=0):
     image = normalize(image)
 
     # Ostrożnie
-    #image[:][image[:] < 0.2] = 0
-    #image[:][image[:] > 0.8] = 1
+    # image[:][image[:] < 0.2] = 0
+    # image[:][image[:] > 0.8] = 1
 
     return image
 
 
-def adjust_filename(file_name):
+def get_patient_info(dc: FileDataset):
+    info = {'name': None, 'date': None, 'comments': None}
+    try:
+        info['id'] = int(dc.PatientID)
+    except ValueError:
+        info['id'] = -1
+
+    info['name'] = str(dc.PatientName)
+    info['comments'] = str(dc.ImageComments)
+    try:
+        print(dc.timestamp, type(dc.timestamp))
+        info['date'] = datetime.fromtimestamp(dc.timestamp)
+    except:
+        print('except')
+        info['date'] = None
+
+    return info
+
+
+def adjust_filename(file_name: str, dicom_save: bool):
     file_name = re.sub(r'\s+', '', file_name)
     file_name = file_name.split('.')[0]
-    file_name += '.jpg'
+    if dicom_save:
+        file_name += '.dcm'
+    else:
+        file_name += '.jpg'
     return file_name
 
 
@@ -156,8 +181,7 @@ def convert_image_to_ubyte(img):
     return img_as_ubyte(rescale_intensity(img, out_range=(0.0, 1.0)))
 
 
-def save_as_dicom(file_name, img, patient_data):
-    img_converted = convert_image_to_ubyte(img)
+def create_dicom(img: Image, patient_data: dict):
 
     # Populate required values for file meta information
     meta = Dataset()
@@ -174,10 +198,11 @@ def save_as_dicom(file_name, img, patient_data):
     ds.SOPClassUID = pydicom._storage_sopclass_uids.CTImageStorage
     ds.SOPInstanceUID = meta.MediaStorageSOPInstanceUID
 
-    ds.PatientName = patient_data["PatientName"]
-    ds.PatientID = patient_data["PatientID"]
-    ds.ImageComments = patient_data["ImageComments"]
-    ds.timestamp = patient_data["Date"]
+    ds.PatientName = patient_data["name"]
+    ds.PatientID = patient_data["id"]
+    ds.ImageComments = patient_data["comments"]
+    ds.timestamp = patient_data["date"]
+    print(ds.timestamp)
 
     ds.Modality = "CT"
     ds.SeriesInstanceUID = pydicom.uid.generate_uid()
@@ -192,7 +217,7 @@ def save_as_dicom(file_name, img, patient_data):
     ds.ImagesInAcquisition = 1
     ds.InstanceNumber = 1
 
-    ds.Rows, ds.Columns = img_converted.shape
+    ds.Rows, ds.Columns = img.size
 
     ds.ImageType = r"ORIGINAL\PRIMARY\AXIAL"
 
@@ -201,6 +226,8 @@ def save_as_dicom(file_name, img, patient_data):
 
     pydicom.dataset.validate_file_meta(ds.file_meta, enforce_standard=True)
 
-    ds.PixelData = img_converted.tobytes()
+    ds.PixelData = img.tobytes()
 
-    ds.save_as(file_name, write_like_original=False)
+    dicom_file = BytesIO()
+    ds.save_as(dicom_file, write_like_original=False)
+    return dicom_file
