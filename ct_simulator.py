@@ -56,11 +56,12 @@ if dicom_checkbox:
         image = dc.pixel_array
 
         patient_info = fun.get_patient_info(dc)
-        # st.write(dc.__dict__)
+        st.write("Data from DICOM:")
         st.write(patient_info)
 else:
     file = st.file_uploader("Choose file", type=['jpg', 'jpeg', 'png'])
     if file is not None:
+        patient_info = fun.get_patient_info()
         image = Image.open(file)
 
 if image is not None:

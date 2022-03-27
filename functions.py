@@ -139,7 +139,9 @@ def reconstruct_image(sinogram, alpha_step, phi, n, img_size, iterations=0):
     return image
 
 
-def get_patient_info(dc):
+def get_patient_info(dc=None):
+    if dc is None:
+        dc = {}
     info = {}
     try:
         info['id'] = int(dc.PatientID)
@@ -164,7 +166,7 @@ def get_patient_info(dc):
     try:
         info['comments'] = str(dc.ImageComments)
     except AttributeError:
-        info['name'] = ""
+        info['comments'] = ""
 
     try:
         info['date'] = dc.ContentDate
@@ -217,7 +219,6 @@ def create_dicom(img: Image, patient_data: dict):
     ds.ContentDate = str(patient_data['date'])
     ds.ContentTime = str(patient_data['time'])
 
-
     ds.Modality = "CT"
     ds.SeriesInstanceUID = pydicom.uid.generate_uid()
     ds.StudyInstanceUID = pydicom.uid.generate_uid()
@@ -248,15 +249,15 @@ def create_dicom(img: Image, patient_data: dict):
 
 
 def calculate_rmse(img1, img2):
-    if(img1.shape != img2.shape):
+    if img1.shape != img2.shape:
         raise Exception("[ERROR] calculate_rmse(): img1.shape != img2.shape")
 
-    if(np.min(img1) < 0 or np.max(img1) > 1):
+    if np.min(img1) < 0 or np.max(img1) > 1:
         raise Exception("[ERROR] calculate_rmse(): img1 not normalized")
 
-    if(np.min(img2) < 0 or np.max(img2) > 1):
+    if np.min(img2) < 0 or np.max(img2) > 1:
         raise Exception("[ERROR] calculate_rmse(): img2 not normalized")
 
-    N = img1.shape[0] * img1.shape[1]
+    n = img1.shape[0] * img1.shape[1]
 
-    return np.sqrt(np.sum((img1 - img2)**2) / N)  
+    return np.sqrt(np.sum((img1 - img2) ** 2) / n)
