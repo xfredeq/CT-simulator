@@ -1,4 +1,3 @@
-from datetime import datetime
 import math
 import re
 from io import BytesIO
@@ -116,7 +115,7 @@ def reconstruct_image(sinogram, alpha_step, phi, n, img_size, iterations=0):
     r = 0.5 * img_size
 
     iterations = math.ceil(2 * np.pi * iterations / (alpha_step * 360)) if iterations != 0 else math.ceil(
-        2 * np.pi / alpha_step)
+            2 * np.pi / alpha_step)
 
     alpha = 0
     for iteration in range(iterations):
@@ -148,21 +147,42 @@ def reconstruct_image(sinogram, alpha_step, phi, n, img_size, iterations=0):
     return image
 
 
-def get_patient_info(dc: FileDataset):
-    info = {'name': None, 'date': None, 'comments': None}
+def get_patient_info(dc):
+    info = {}
     try:
         info['id'] = int(dc.PatientID)
-    except ValueError:
+    except (ValueError, AttributeError):
         info['id'] = -1
 
-    info['name'] = str(dc.PatientName)
-    info['comments'] = str(dc.ImageComments)
     try:
-        print(dc.timestamp, type(dc.timestamp))
-        info['date'] = datetime.fromtimestamp(dc.timestamp)
-    except:
-        print('except')
+        info['name'] = str(dc.PatientName)
+    except AttributeError:
+        info['name'] = ""
+
+    try:
+        info['sex'] = dc.PatientSex
+    except AttributeError:
+        info['sex'] = None
+
+    try:
+        info['weight'] = dc.PatientWeight
+    except AttributeError:
+        info['weight'] = -1
+
+    try:
+        info['comments'] = str(dc.ImageComments)
+    except AttributeError:
+        info['name'] = ""
+
+    try:
+        info['date'] = dc.ContentDate
+    except AttributeError:
         info['date'] = None
+
+    try:
+        info['time'] = dc.ContentTime
+    except AttributeError:
+        info['time'] = None
 
     return info
 
@@ -182,7 +202,6 @@ def convert_image_to_ubyte(img):
 
 
 def create_dicom(img: Image, patient_data: dict):
-
     # Populate required values for file meta information
     meta = Dataset()
     meta.MediaStorageSOPClassUID = pydicom._storage_sopclass_uids.CTImageStorage
@@ -201,8 +220,11 @@ def create_dicom(img: Image, patient_data: dict):
     ds.PatientName = patient_data["name"]
     ds.PatientID = patient_data["id"]
     ds.ImageComments = patient_data["comments"]
-    ds.timestamp = patient_data["date"]
-    print(ds.timestamp)
+    ds.PatientSex = patient_data["sex"]
+    ds.PatientWeight = patient_data["weight"]
+    ds.ContentDate = str(patient_data['date'])
+    ds.ContentTime = str(patient_data['time'])
+
 
     ds.Modality = "CT"
     ds.SeriesInstanceUID = pydicom.uid.generate_uid()

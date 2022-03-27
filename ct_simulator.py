@@ -56,7 +56,7 @@ if dicom_checkbox:
         image = dc.pixel_array
 
         patient_info = fun.get_patient_info(dc)
-        st.write(dc.__dict__)
+        # st.write(dc.__dict__)
         st.write(patient_info)
 else:
     file = st.file_uploader("Choose file", type=['jpg', 'jpeg', 'png'])
@@ -146,13 +146,15 @@ if image is not None:
                 form_col1, form_col2 = st.columns(2)
                 with form_col1:
                     patient_info['id'] = str(st.number_input("PatientID", min_value=0, value=int(patient_info['id'])))
-                    date = st.date_input("Date", value=datetime.now())
+                    patient_info['sex'] = st.radio("PatientSex", ("Male", "Female"))
+                    patient_info['date'] = st.date_input("Date", value=datetime.now())
                 with form_col2:
                     patient_info['name'] = st.text_input("PatientName", value=patient_info['name'])
-                    time = st.time_input("Time", value=datetime.now())
+                    patient_info['weight'] = st.number_input("PatientWeight", min_value=0.0, max_value=200.0,
+                                                             step=0.1, value=float(patient_info['weight']))
+                    patient_info['time'] = st.time_input("Time", value=datetime.now())
 
                 patient_info['comments'] = st.text_input("ImageComments", value=patient_info['comments'])
-                patient_info['date'] = datetime.combine(date, time).timestamp()
 
             confirm_filename = st.form_submit_button("Confirm")
 
