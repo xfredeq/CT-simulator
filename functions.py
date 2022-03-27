@@ -249,15 +249,27 @@ def create_dicom(img: Image, patient_data: dict):
 
 
 def calculate_rmse(img1, img2):
-    if img1.shape != img2.shape:
+    if(img1.shape != img2.shape):
         raise Exception("[ERROR] calculate_rmse(): img1.shape != img2.shape")
 
-    if np.min(img1) < 0 or np.max(img1) > 1:
-        raise Exception("[ERROR] calculate_rmse(): img1 not normalized")
+    if(np.min(img1) < 0 or np.max(img1) > 1):
+            raise Exception("[ERROR] calculate_rmse(): img1 not normalized")
 
-    if np.min(img2) < 0 or np.max(img2) > 1:
+    if(np.min(img2) < 0 or np.max(img2) > 1):
         raise Exception("[ERROR] calculate_rmse(): img2 not normalized")
+    
+    size = img1.shape[0]
+    center = int(size / 2)
+    pixels_sum = 0
+    n = 0
 
-    n = img1.shape[0] * img1.shape[1]
-
-    return np.sqrt(np.sum((img1 - img2) ** 2) / n)
+    img1 = img1.tolist()
+    img2 = img2.tolist()
+    
+    for i in range(size):
+        for j in range(size):
+            if math.dist([j,i], [center, center]) <= center:
+                pixels_sum += (img1[i][j] - img2[i][j])**2
+                n += 1
+    
+    return math.sqrt(pixels_sum / n)
