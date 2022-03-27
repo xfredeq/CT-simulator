@@ -67,13 +67,11 @@ def make_sinogram(image, alpha_step=4, phi=180, n=200):
 
             coords = skimage.draw.line_nd([x_e, y_e], [x_d, y_d])
 
-            # Niestety mogą zdarzyć się koordy poza obrazem
             coords[0][coords[0] >= img_size] -= 1
             coords[1][coords[1] >= img_size] -= 1
 
             points = image[coords[1], coords[0]]
 
-            # Średnia, nie suma -> bez artefaktów
             sinogram[iteration, i] = np.mean(points)
 
         alpha += alpha_step
@@ -97,7 +95,6 @@ def _make_kernel(size):
 
 
 def filter_sinogram(sinogram):
-    # Jaki rozmiar?? Na razie liczba detektorów
     kernel = _make_kernel(sinogram.shape[1])
 
     for i in range(len(sinogram)):
@@ -130,7 +127,6 @@ def reconstruct_image(sinogram, alpha_step, phi, n, img_size, iterations=0):
 
             coords = skimage.draw.line_nd([x_e, y_e], [x_d, y_d])
 
-            # Niestety mogą zdarzyć się koordy poza obrazem
             coords[0][coords[0] >= img_size] -= 1
             coords[1][coords[1] >= img_size] -= 1
 
@@ -139,10 +135,6 @@ def reconstruct_image(sinogram, alpha_step, phi, n, img_size, iterations=0):
         alpha += alpha_step
 
     image = normalize(image)
-
-    # Ostrożnie
-    # image[:][image[:] < 0.2] = 0
-    # image[:][image[:] > 0.8] = 1
 
     return image
 
@@ -253,3 +245,18 @@ def create_dicom(img: Image, patient_data: dict):
     dicom_file = BytesIO()
     ds.save_as(dicom_file, write_like_original=False)
     return dicom_file
+
+
+def calculate_rmse(img1, img2):
+    if(img1.shape != img2.shape):
+        raise Exception("[ERROR] calculate_rmse(): img1.shape != img2.shape")
+
+    if(np.min(img1) < 0 or np.max(img1) > 1):
+        raise Exception("[ERROR] calculate_rmse(): img1 not normalized")
+
+    if(np.min(img2) < 0 or np.max(img2) > 1):
+        raise Exception("[ERROR] calculate_rmse(): img2 not normalized")
+
+    N = img1.shape[0] * img1.shape[1]
+
+    return np.sqrt(np.sum((img1 - img2)**2) / N)  

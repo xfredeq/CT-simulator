@@ -136,6 +136,10 @@ if image is not None:
                 st.subheader("Reconstructed image")
                 st.image(reconstructed, caption="Reconstructed image")
 
+        st.subheader("RMSE")
+        rmse = round(fun.calculate_rmse(reconstructed, cropped_image) * 100, 3)
+        st.info(f'{rmse}%')
+        
         st.subheader('Save file')
 
         with st.form("File Name"):
