@@ -95,13 +95,13 @@ if image is not None:
             sinogram = fun.make_sinogram(cropped_image, alpha_step, phi, n)
 
             st.subheader("Sinogram generation steps")
-            sinogram_step = st.slider("", 1, int(np.floor(360 / alpha_step)), step=5)
+            sinogram_step = st.slider("", 1, int(np.floor(360 / alpha_step)), step=5, key="s_step")
 
             st.subheader("Sinogram")
             st.image(sinogram[0:sinogram_step], caption=f'Sinogram ({sinogram_step}x{sinogram.shape[1]})')
 
             st.subheader("Tomograph rotation degree")
-            iterations = st.slider("", 1, 360, step=5)
+            iterations = st.slider("", 1, 360, step=5, key="t_step")
 
             if filter_checkbox:
                 filtered = fun.filter_sinogram(sinogram)
