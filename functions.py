@@ -65,12 +65,12 @@ def make_sinogram(image, alpha_step=4, phi=180, n=200):
             y_d = r * np.sin(alpha + np.pi - phi / 2 + i * (phi / (n - 1)))
             x_d, y_d = _convert_coords((x_d, y_d), r)
 
-            coords = skimage.draw.line_nd([x_e, y_e], [x_d, y_d])
+            coords = skimage.draw.line_nd([y_e, x_e], [y_d, x_d])
 
             coords[0][coords[0] >= img_size] -= 1
             coords[1][coords[1] >= img_size] -= 1
 
-            points = image[coords[1], coords[0]]
+            points = image[coords[0], coords[1]]
 
             sinogram[iteration, i] = np.mean(points)
 
@@ -125,12 +125,12 @@ def reconstruct_image(sinogram, alpha_step, phi, n, img_size, iterations=0):
             y_d = r * np.sin(alpha + np.pi - phi / 2 + i * (phi / (n - 1)))
             x_d, y_d = _convert_coords((x_d, y_d), r)
 
-            coords = skimage.draw.line_nd([x_e, y_e], [x_d, y_d])
+            coords = skimage.draw.line_nd([y_e, x_e], [y_d, x_d])
 
             coords[0][coords[0] >= img_size] -= 1
             coords[1][coords[1] >= img_size] -= 1
 
-            image[coords[1], coords[0]] += sinogram[iteration, i]
+            image[coords[0], coords[1]] += sinogram[iteration, i]
 
         alpha += alpha_step
 
